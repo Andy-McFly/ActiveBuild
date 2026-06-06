@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+    <h1 class="page-title" data-i18n="page_stats">Estadísticas</h1>
+</div>
+
+<div class="metric-grid" style="margin-bottom:1.5rem;">
+    <div class="metric-card">
+        <p class="metric-label" data-i18n="metric_week">Sesiones esta semana</p>
+        <p class="metric-value" id="m-week">—</p>
+    </div>
+    <div class="metric-card">
+        <p class="metric-label" data-i18n="metric_month">Sesiones este mes</p>
+        <p class="metric-value" id="m-month">—</p>
+    </div>
+    <div class="metric-card">
+        <p class="metric-label" data-i18n="metric_top_role">Rol más jugado</p>
+        <div id="m-role" style="margin-top:6px; display:flex; justify-content:center;"></div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:1.5rem;">
+    <div class="card">
+        <p style="font-size:14px; font-weight:600; margin-bottom:1rem;" data-i18n="chart_title">Días jugados por semana</p>
+        <div id="weekly-chart" style="display:flex; align-items:flex-end; gap:6px; height:120px;"></div>
+        <div id="weekly-labels" style="display:flex; gap:6px; margin-top:6px;"></div>
+    </div>
+    <div class="card">
+        <p style="font-size:14px; font-weight:600; margin-bottom:1rem;" data-i18n="most_played_title">Más jugado</p>
+        <div style="margin-bottom:1rem;">
+            <p style="font-size:11px; color:var(--text-muted); margin-bottom:4px;" data-i18n="this_week">Esta semana</p>
+            <p style="font-size:14px; font-weight:500;" id="most-week">—</p>
+        </div>
+        <hr class="divider" style="margin:0.75rem 0;">
+        <div>
+            <p style="font-size:11px; color:var(--text-muted); margin-bottom:4px;" data-i18n="this_month">Este mes</p>
+            <p style="font-size:14px; font-weight:500;" id="most-month">—</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <p style="font-size:14px; font-weight:600; margin-bottom:1rem;" data-i18n="completed_title">Juegos completados</p>
+    <div id="completed-list"></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadStats() {
+    const [summary, weekly, mostPlayed, completed] = await Promise.all([
+        fetch('/api/stats/summary').then(r => r.json()),
+        fetch('/api/stats/weekly?weeks=8').then(r => r.json()),
+        fetch('/api/stats/most-played').then(r => r.json()),
+        fetch('/api/stats/completed').then(r => r.json())
+    ]);
+
+    document.getElementById('m-week').textContent = summary.sessions_this_week;
+    document.getElementById('m-month').textContent = summary.sessions_this_month;
+    const roleEl = document.getElementById('m-role');
+    roleEl.innerHTML = summary.top_role
+        ? `<span class="badge badge-${summary.top_role}">${t('role_' + summary.top_role)}</span>`
+        : '<span style="color:var(--text-muted);font-size:13px;">—</span>';
+
+    renderWeeklyChart(weekly);
+
+    const fmtSessions = n => n === 1 ? t('session_1') : t('sessions_n', {n});
+    document.getElementById('most-week').textContent = mostPlayed.this_week
+        ? `${mostPlayed.this_week.name} (${fmtSessions(mostPlayed.this_week.sessions)})` : '—';
+    document.getElementById('most-month').textContent = mostPlayed.this_month
+        ? `${mostPlayed.this_month.name} (${fmtSessions(mostPlayed.this_month.sessions)})` : '—';
+
+    renderCompleted(completed);
+}
+
+function renderWeeklyChart(data) {
+    const chart = document.getElementById('weekly-chart');
+    const labels = document.getElementById('weekly-labels');
+    const max = Math.max(...data.map(w => w.days_played), 1);
+    const locale = currentLang === 'en' ? 'en-GB' : 'es-ES';
+
+    chart.innerHTML = data.map((w, i) => {
+        const isCurrent = i === data.length - 1;
+        const heightPct = Math.round((w.days_played / max) * 100);
+        return `
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%;">
+                <span style="font-size:10px; color:var(--text-muted);">${w.days_played}</span>
+                <div style="flex:1; width:100%; display:flex; align-items:flex-end;">
+                    <div style="width:100%; height:${heightPct}%; background:${isCurrent ? 'var(--accent)' : 'var(--bar-bg)'}; border-radius:4px 4px 0 0; min-height:${w.days_played ? 4 : 0}px; opacity:${isCurrent ? 1 : 0.6};"></div>
+                </div>
+            </div>`;
+    }).join('');
+
+    labels.innerHTML = data.map((w, i) => {
+        const isCurrent = i === data.length - 1;
+        const label = isCurrent ? t('this_week_label') : new Date(w.week + 'T00:00:00').toLocaleDateString(locale, {month:'short', day:'numeric'});
+        return `<div style="flex:1; text-align:center; font-size:10px; color:${isCurrent ? 'var(--accent-text)' : 'var(--text-muted)'}; white-space:nowrap; overflow:hidden; font-weight:${isCurrent ? 600 : 400};">${label}</div>`;
+    }).join('');
+}
+
+function renderCompleted(games) {
+    const el = document.getElementById('completed-list');
+    if (!games.length) { el.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">${t('no_completed')}</p>`; return; }
+    const fmtSessions = n => n === 1 ? t('session_1') : t('sessions_n', {n});
+    el.innerHTML = games.map(g => `
+        <div style="display:flex; align-items:center; gap:12px; padding:0.75rem 0; border-bottom:1px solid var(--border);">
+            ${g.cover_url ? `<img src="${g.cover_url}" style="width:36px;height:48px;object-fit:cover;border-radius:5px;flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+            <div style="flex:1;">
+                <p style="font-size:14px; font-weight:500;">${g.name}</p>
+                <p style="font-size:12px; color:var(--text-muted);">${g.platform || ''}</p>
+            </div>
+            <div style="text-align:right;">
+                <p style="font-size:13px; font-weight:500; color:var(--accent-text);">${fmtSessions(g.total_sessions)}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+loadStats();
+</script>
+{% endblock %}

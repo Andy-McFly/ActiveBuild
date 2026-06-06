@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+    <h1 class="page-title" data-i18n="page_settings">Ajustes</h1>
+</div>
+
+<div class="card" style="max-width:500px;">
+
+    <div class="form-group">
+        <label class="form-label" data-i18n="setting_theme">Tema</label>
+        <div style="display:flex; gap:8px;">
+            <button class="btn theme-btn" data-theme="standard" onclick="setTheme('standard')" data-i18n="theme_standard">Estándar</button>
+            <button class="btn theme-btn" data-theme="dark" onclick="setTheme('dark')" data-i18n="theme_dark">Oscuro</button>
+            <button class="btn theme-btn" data-theme="light" onclick="setTheme('light')" data-i18n="theme_light">Claro</button>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="form-group">
+        <label class="form-label" data-i18n="setting_lang">Idioma</label>
+        <div style="display:flex; gap:8px;">
+            <button class="btn lang-btn" data-lang="es" onclick="setLang('es')">Español</button>
+            <button class="btn lang-btn" data-lang="en" onclick="setLang('en')">English</button>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" data-i18n="setting_week">Inicio de semana</label>
+        <div style="display:flex; gap:8px;">
+            <button class="btn week-btn" data-week="monday" onclick="setWeekStart('monday')" data-i18n="monday">Lunes</button>
+            <button class="btn week-btn" data-week="sunday" onclick="setWeekStart('sunday')" data-i18n="sunday">Domingo</button>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentSettings = {};
+
+async function loadSettings() {
+    currentSettings = await fetch('/api/settings').then(r => r.json());
+    updateActiveButtons();
+}
+
+function updateActiveButtons() {
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active-filter', b.dataset.theme === currentSettings.theme));
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active-filter', b.dataset.lang === currentSettings.language));
+    document.querySelectorAll('.week-btn').forEach(b => b.classList.toggle('active-filter', b.dataset.week === currentSettings.week_start));
+}
+
+async function saveSetting(key, value) {
+    const r = await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({[key]: value}) });
+    if (r.ok) { currentSettings[key] = value; updateActiveButtons(); showToast(t('toast_saved'), 'success'); }
+    else { showToast(t('toast_err_save'), 'error'); }
+}
+
+function setTheme(theme) {
+    localStorage.setItem('ab_theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    saveSetting('theme', theme);
+}
+
+function setLang(lang) {
+    setLanguage(lang);
+    saveSetting('language', lang);
+}
+
+function setWeekStart(day) {
+    saveSetting('week_start', day);
+}
+
+loadSettings();
+</script>
+<style>.active-filter { background:var(--accent-light); color:var(--accent-text); border-color:var(--accent); }</style>
+{% endblock %}

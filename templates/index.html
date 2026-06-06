@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title" data-i18n="page_home">Inicio</h1>
+        <p id="today-date" style="font-size:13px; color:var(--text-muted); margin-top:2px;"></p>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:14px;" id="role-cards">
+    <div class="card card-principal" id="card-principal">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <span class="badge badge-principal" data-i18n="role_principal">Principal</span>
+            <span class="platform" id="platform-principal">—</span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:10px;">
+            <img class="game-cover" id="cover-principal" src="" alt="" onerror="this.style.display='none'">
+            <div style="flex:1; min-width:0;">
+                <p style="font-size:15px; font-weight:600; color:var(--text-main); line-height:1.3;" id="name-principal"></p>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" id="genres-principal"></p>
+            </div>
+        </div>
+        <div id="session-info-principal" style="font-size:12px; color:var(--text-muted);"></div>
+        <div class="bar-wrap"><div class="bar-fill bar-p" id="bar-principal" style="width:0%"></div></div>
+        <p style="font-size:11px; color:var(--text-muted); text-align:right;" id="bar-label-principal"></p>
+    </div>
+
+    <div class="card" id="card-secundario">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <span class="badge badge-secundario" data-i18n="role_secundario">Secundario</span>
+            <span class="platform" id="platform-secundario">—</span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:10px;">
+            <img class="game-cover" id="cover-secundario" src="" alt="" onerror="this.style.display='none'">
+            <div style="flex:1; min-width:0;">
+                <p style="font-size:15px; font-weight:600; color:var(--text-main); line-height:1.3;" id="name-secundario"></p>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" id="genres-secundario"></p>
+            </div>
+        </div>
+        <div id="session-info-secundario" style="font-size:12px; color:var(--text-muted);"></div>
+        <div class="bar-wrap"><div class="bar-fill bar-s" id="bar-secundario" style="width:0%"></div></div>
+        <p style="font-size:11px; color:var(--text-muted); text-align:right;" id="bar-label-secundario"></p>
+    </div>
+
+    <div class="card" id="card-comodin">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <span class="badge badge-comodin" data-i18n="role_comodin">Comodín</span>
+            <span class="platform" id="platform-comodin">—</span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:10px;">
+            <img class="game-cover" id="cover-comodin" src="" alt="" onerror="this.style.display='none'">
+            <div style="flex:1; min-width:0;">
+                <p style="font-size:15px; font-weight:600; color:var(--text-main); line-height:1.3;" id="name-comodin"></p>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" id="genres-comodin"></p>
+            </div>
+        </div>
+        <div id="session-info-comodin" style="font-size:12px; color:var(--text-muted);"></div>
+        <div class="bar-wrap"><div class="bar-fill bar-c" id="bar-comodin" style="width:0%"></div></div>
+        <p style="font-size:11px; color:var(--text-muted); text-align:right;" id="bar-label-comodin"></p>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:2rem;">
+    <button class="btn btn-primary" onclick="playGame('principal')" id="btn-principal">▶ Jugar</button>
+    <button class="btn" onclick="playGame('secundario')" id="btn-secundario">▶ Jugar</button>
+    <button class="btn" onclick="playGame('comodin')" id="btn-comodin">▶ Jugar</button>
+</div>
+
+<hr class="divider">
+
+<div class="metric-grid">
+    <div class="metric-card">
+        <p class="metric-label" data-i18n="metric_week">Sesiones esta semana</p>
+        <p class="metric-value" id="m-week">—</p>
+    </div>
+    <div class="metric-card">
+        <p class="metric-label" data-i18n="metric_month">Sesiones este mes</p>
+        <p class="metric-value" id="m-month">—</p>
+    </div>
+    <div class="metric-card">
+        <p class="metric-label" data-i18n="metric_top_role">Rol más jugado</p>
+        <div id="m-role" style="margin-top:6px; display:flex; justify-content:center;"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ROLES = ['principal', 'secundario', 'comodin'];
+let gamesData = [], sessionsData = [], settingsData = {};
+const TODAY = new Date().toISOString().split('T')[0];
+
+function getWeekStart(ws) {
+    const today = new Date();
+    const day = today.getDay();
+    const diff = ws === 'monday' ? (day === 0 ? 6 : day - 1) : day;
+    const start = new Date(today);
+    start.setDate(today.getDate() - diff);
+    return start.toISOString().split('T')[0];
+}
+
+function daysSince(dateStr) {
+    if (!dateStr) return null;
+    return Math.round((new Date(TODAY) - new Date(dateStr)) / 86400000);
+}
+
+function daysPlayedThisWeek(gameId, weekStart) {
+    return new Set(sessionsData.filter(s => s.game_id === gameId && s.date >= weekStart).map(s => s.date)).size;
+}
+
+function lastPlayedDate(gameId) {
+    const dates = sessionsData.filter(s => s.game_id === gameId).map(s => s.date).sort();
+    return dates.length ? dates[dates.length - 1] : null;
+}
+
+function renderCards() {
+    const weekStart = getWeekStart(settingsData.week_start || 'monday');
+    ROLES.forEach(role => {
+        const game = gamesData.find(g => g.role === role && g.status === 'playing');
+        const last = game ? lastPlayedDate(game.id) : null;
+        const playedToday = last === TODAY;
+        const daysThisWeek = game ? daysPlayedThisWeek(game.id, weekStart) : 0;
+        const barPct = Math.round((daysThisWeek / 7) * 100);
+
+        document.getElementById('name-' + role).textContent = game ? game.name : t('no_game');
+        document.getElementById('platform-' + role).textContent = game ? game.platform : '—';
+        document.getElementById('genres-' + role).textContent = game && game.genres.length ? game.genres.join(', ') : '';
+
+        const coverEl = document.getElementById('cover-' + role);
+        if (game && game.cover_url) { coverEl.src = game.cover_url; coverEl.style.display = 'block'; }
+        else { coverEl.style.display = 'none'; }
+
+        const sessionInfo = document.getElementById('session-info-' + role);
+        if (!game) { sessionInfo.textContent = ''; }
+        else if (playedToday) { sessionInfo.innerHTML = `<span class="played-today">${t('played_today')}</span>`; }
+        else if (last) {
+            const d = daysSince(last);
+            sessionInfo.textContent = d === 1 ? t('day_ago') : t('days_ago', {n: d});
+        } else { sessionInfo.textContent = t('no_sessions'); }
+
+        document.getElementById('bar-' + role).style.width = barPct + '%';
+        document.getElementById('bar-label-' + role).textContent =
+            game ? (daysThisWeek === 1 ? t('day_week', {n:1}) : t('days_week', {n: daysThisWeek})) : '';
+
+        const btn = document.getElementById('btn-' + role);
+        btn.disabled = !game;
+        if (playedToday) {
+            btn.textContent = t('played_today');
+            btn.classList.add('btn-primary');
+        } else {
+            btn.textContent = t('btn_play');
+            if (role === 'principal') btn.classList.add('btn-primary');
+            else btn.classList.remove('btn-primary');
+        }
+    });
+}
+
+function renderMetrics() {
+    fetch('/api/stats/summary').then(r => r.json()).then(s => {
+        document.getElementById('m-week').textContent = s.sessions_this_week;
+        document.getElementById('m-month').textContent = s.sessions_this_month;
+        const roleEl = document.getElementById('m-role');
+        if (s.top_role) {
+            roleEl.innerHTML = `<span class="badge badge-${s.top_role}">${t('role_' + s.top_role)}</span>`;
+        } else {
+            roleEl.innerHTML = '<span style="color:var(--text-muted);font-size:13px;">—</span>';
+        }
+    });
+}
+
+async function playGame(role) {
+    const game = gamesData.find(g => g.role === role && g.status === 'playing');
+    if (!game) return;
+    const r = await fetch(`/api/games/${game.id}/play`, { method: 'POST' });
+    const data = await r.json();
+    showToast(data.message === 'Ya registrado hoy' ? t('toast_already') : t('toast_played'), 'success');
+    await loadData();
+}
+
+async function loadData() {
+    const [games, sessions, settings] = await Promise.all([
+        fetch('/api/games').then(r => r.json()),
+        fetch('/api/sessions').then(r => r.json()),
+        fetch('/api/settings').then(r => r.json())
+    ]);
+    gamesData = games; sessionsData = sessions; settingsData = settings;
+    renderCards();
+    renderMetrics();
+}
+
+const locale = currentLang === 'en' ? 'en-GB' : 'es-ES';
+document.getElementById('today-date').textContent =
+    new Date().toLocaleDateString(locale, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+loadData();
+</script>
+{% endblock %}
