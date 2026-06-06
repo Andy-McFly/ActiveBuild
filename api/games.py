@@ -1,3 +1,4 @@
+import sys
 from flask import Blueprint, jsonify, request
 from pathlib import Path
 import json
@@ -6,14 +7,16 @@ from datetime import date
 
 games_bp = Blueprint('games', __name__, url_prefix='/api')
 
-DATA_FILE = Path(__file__).parent.parent / 'data' / 'data.json'
+def get_data_file():
+    base = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent.parent
+    return base / 'data' / 'data.json'
 
 def read_data():
-    with open(DATA_FILE, 'r', encoding='utf-8') as f:
+    with open(get_data_file(), 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def write_data(data):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+    with open(get_data_file(), 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 @games_bp.route('/games', methods=['GET'])
@@ -88,14 +91,13 @@ def play_game(game_id):
     write_data(data)
     return jsonify(session), 201
 
-from services.hltb import get_hltb_data
-
 @games_bp.route('/hltb', methods=['POST'])
 def lookup_hltb():
     body = request.get_json()
     url = body.get('url', '')
     if not url:
         return jsonify({'error': 'URL requerida'}), 400
+    from services.hltb import get_hltb_data
     result = get_hltb_data(url)
     if not result:
         return jsonify({'error': 'No se encontró el juego'}), 404

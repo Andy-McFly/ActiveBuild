@@ -1,17 +1,20 @@
+import sys
 from flask import Blueprint, jsonify, request
 from pathlib import Path
 import json
 
 settings_bp = Blueprint('settings', __name__, url_prefix='/api')
 
-DATA_FILE = Path(__file__).parent.parent / 'data' / 'data.json'
+def get_data_file():
+    base = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent.parent
+    return base / 'data' / 'data.json'
 
 def read_data():
-    with open(DATA_FILE, 'r', encoding='utf-8') as f:
+    with open(get_data_file(), 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def write_data(data):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+    with open(get_data_file(), 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 @settings_bp.route('/settings', methods=['GET'])

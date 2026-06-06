@@ -1,51 +1,9 @@
 {
   "settings": {
-    "theme": "dark",
+    "theme": "standard",
     "language": "es",
     "week_start": "monday"
   },
-  "games": [
-    {
-      "id": "021f7799-28ad-4e75-b5ff-410855d9c09a",
-      "name": "Monster Hunter Wilds",
-      "cover_url": "https://howlongtobeat.com/games/141854_Monster_Hunter_Wilds.jpg",
-      "genres": [
-        "RPG",
-        "Acción"
-      ],
-      "hltb_id": null,
-      "platform": "PC",
-      "role": "comodin",
-      "status": "playing",
-      "added_date": "2026-06-06"
-    },
-    {
-      "id": "a1d4c259-a56e-4465-8128-1d346e7b5be5",
-      "name": "Rise of the Ronin",
-      "cover_url": "https://howlongtobeat.com/games/113548_Rise_of_the_Ronin.jpg",
-      "genres": [
-        "RPG",
-        "Acción"
-      ],
-      "hltb_id": null,
-      "platform": "PC",
-      "role": "principal",
-      "status": "playing",
-      "added_date": "2026-06-06"
-    }
-  ],
-  "sessions": [
-    {
-      "id": "12fed965-b55a-4a8d-aae0-49e3e58164be",
-      "game_id": "a1d4c259-a56e-4465-8128-1d346e7b5be5",
-      "role": "principal",
-      "date": "2026-06-06"
-    },
-    {
-      "id": "c6346b18-a024-4059-ba5b-a864c7497965",
-      "game_id": "021f7799-28ad-4e75-b5ff-410855d9c09a",
-      "role": "comodin",
-      "date": "2026-06-06"
-    }
-  ]
+  "games": [],
+  "sessions": []
 }

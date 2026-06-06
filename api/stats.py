@@ -1,3 +1,4 @@
+import sys
 from flask import Blueprint, jsonify, request
 from pathlib import Path
 from datetime import date, timedelta
@@ -5,10 +6,12 @@ import json
 
 stats_bp = Blueprint('stats', __name__, url_prefix='/api')
 
-DATA_FILE = Path(__file__).parent.parent / 'data' / 'data.json'
+def get_data_file():
+    base = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent.parent
+    return base / 'data' / 'data.json'
 
 def read_data():
-    with open(DATA_FILE, 'r', encoding='utf-8') as f:
+    with open(get_data_file(), 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def get_week_start(settings):
@@ -27,14 +30,8 @@ def get_summary():
     week_start = get_week_start(settings)
     month_start = today.replace(day=1)
 
-    sessions_week = [
-        s for s in sessions
-        if date.fromisoformat(s['date']) >= week_start
-    ]
-    sessions_month = [
-        s for s in sessions
-        if date.fromisoformat(s['date']) >= month_start
-    ]
+    sessions_week = [s for s in sessions if date.fromisoformat(s['date']) >= week_start]
+    sessions_month = [s for s in sessions if date.fromisoformat(s['date']) >= month_start]
 
     role_counts = {'principal': 0, 'secundario': 0, 'comodin': 0}
     for s in sessions_month:
@@ -55,7 +52,6 @@ def get_weekly():
     sessions = data['sessions']
     settings = data['settings']
     weeks = int(request.args.get('weeks', 8))
-    today = date.today()
     week_start = get_week_start(settings)
     result = []
     for i in range(weeks - 1, -1, -1):
@@ -65,10 +61,7 @@ def get_weekly():
             s['date'] for s in sessions
             if w_start <= date.fromisoformat(s['date']) <= w_end
         ))
-        result.append({
-            'week': str(w_start),
-            'days_played': days_played
-        })
+        result.append({'week': str(w_start), 'days_played': days_played})
     return jsonify(result)
 
 @stats_bp.route('/stats/most-played', methods=['GET'])
