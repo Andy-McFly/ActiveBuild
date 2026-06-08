@@ -1,5 +1,12 @@
 const TRANSLATIONS = {
   es: {
+    confirm_completed: '¿Marcar "{name}" como completado? Se le quitará el rol activo si tenía uno.',
+    toast_role_conflict: 'El rol {role} ya lo tiene "{name}"',
+    metric_backlog: 'Juegos en backlog',
+    metric_completed_total: 'Juegos completados',
+    chart_completed_year: 'Completados por año',
+    toast_duplicate: 'Ya existe un juego con ese nombre',
+    field_completed_date: 'Fecha de completado',
     nav_home:'Inicio', nav_games:'Mis juegos', nav_stats:'Estadísticas', nav_settings:'Ajustes',
     page_home:'Inicio', page_games:'Mis juegos', page_stats:'Estadísticas', page_settings:'Ajustes',
     role_principal:'Principal', role_secundario:'Secundario', role_comodin:'Comodín', role_none:'Sin rol',
@@ -30,8 +37,17 @@ const TRANSLATIONS = {
     toast_played:'¡Sesión registrada!', toast_already:'Ya habías registrado una sesión hoy',
     toast_added:'Juego añadido', toast_updated:'Juego actualizado', toast_deleted:'Juego eliminado',
     toast_saved:'Ajuste guardado', toast_err_save:'Error al guardar', toast_err_delete:'Error al eliminar',
+    sort_by: 'Ordenar por:', sort_name: 'Nombre',
+    sort_platform: 'Plataforma', sort_added: 'Fecha añadido', sort_status: 'Estado',
   },
   en: {
+    confirm_completed: 'Mark "{name}" as completed? Its active role will be removed if it had one.',
+    toast_role_conflict: 'The {role} role is already assigned to "{name}"',
+    metric_backlog: 'Games in backlog',
+    metric_completed_total: 'Completed games',
+    chart_completed_year: 'Completed per year',
+    toast_duplicate: 'A game with that name already exists',
+    field_completed_date: 'Completion date',
     nav_home:'Home', nav_games:'My games', nav_stats:'Statistics', nav_settings:'Settings',
     page_home:'Home', page_games:'My games', page_stats:'Statistics', page_settings:'Settings',
     role_principal:'Main', role_secundario:'Secondary', role_comodin:'Wildcard', role_none:'No role',
@@ -62,6 +78,8 @@ const TRANSLATIONS = {
     toast_played:'Session recorded!', toast_already:'You already recorded a session today',
     toast_added:'Game added', toast_updated:'Game updated', toast_deleted:'Game deleted',
     toast_saved:'Setting saved', toast_err_save:'Error saving', toast_err_delete:'Error deleting',
+    sort_by: 'Sort by:', sort_name: 'Name',
+    sort_platform: 'Platform', sort_added: 'Date added', sort_status: 'Status',
   }
 };
 

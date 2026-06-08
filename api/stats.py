@@ -100,6 +100,7 @@ def get_completed():
             'name': game['name'],
             'platform': game['platform'],
             'cover_url': game['cover_url'],
+            'completed_date': game.get('completed_date', None),
             'total_sessions': total_sessions
         })
     return jsonify(result)

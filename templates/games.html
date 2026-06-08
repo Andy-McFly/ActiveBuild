@@ -1,228 +1,622 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %} {% block content %}
 
 <div class="page-header">
-    <h1 class="page-title" data-i18n="page_games">Mis juegos</h1>
-    <button class="btn btn-primary" onclick="openModal()" data-i18n="btn_add">+ Añadir juego</button>
+  <h1 class="page-title" data-i18n="page_games">Mis juegos</h1>
+  <div style="display: flex; gap: 8px">
+    <button
+      class="btn btn-sm"
+      id="view-list"
+      onclick="setView('list')"
+      title="Vista lista"
+    >
+      ☰
+    </button>
+    <button
+      class="btn btn-sm"
+      id="view-grid"
+      onclick="setView('grid')"
+      title="Vista cuadrícula"
+    >
+      ⊞
+    </button>
+    <button class="btn btn-primary" onclick="openModal()" data-i18n="btn_add">
+      + Añadir juego
+    </button>
+  </div>
 </div>
 
-<div style="display:flex; gap:8px; margin-bottom:1.25rem; flex-wrap:wrap;">
-    <button class="btn btn-sm active-filter" data-filter="all" onclick="setFilter('all',this)" data-i18n="filter_all">Todos</button>
-    <button class="btn btn-sm" data-filter="playing" onclick="setFilter('playing',this)" data-i18n="filter_active">Activos</button>
-    <button class="btn btn-sm" data-filter="backlog" onclick="setFilter('backlog',this)" data-i18n="filter_backlog">Backlog</button>
-    <button class="btn btn-sm" data-filter="paused" onclick="setFilter('paused',this)" data-i18n="filter_paused">Pausados</button>
-    <button class="btn btn-sm" data-filter="completed" onclick="setFilter('completed',this)" data-i18n="filter_completed">Completados</button>
-    <button class="btn btn-sm" data-filter="abandoned" onclick="setFilter('abandoned',this)" data-i18n="filter_abandoned">Abandonados</button>
+<div style="display: flex; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap">
+  <button
+    class="btn btn-sm active-filter"
+    data-filter="all"
+    onclick="setFilter('all', this)"
+    data-i18n="filter_all"
+  >
+    Todos
+  </button>
+  <button
+    class="btn btn-sm"
+    data-filter="playing"
+    onclick="setFilter('playing', this)"
+    data-i18n="filter_active"
+  >
+    Activos
+  </button>
+  <button
+    class="btn btn-sm"
+    data-filter="backlog"
+    onclick="setFilter('backlog', this)"
+    data-i18n="filter_backlog"
+  >
+    Backlog
+  </button>
+  <button
+    class="btn btn-sm"
+    data-filter="paused"
+    onclick="setFilter('paused', this)"
+    data-i18n="filter_paused"
+  >
+    Pausados
+  </button>
+  <button
+    class="btn btn-sm"
+    data-filter="completed"
+    onclick="setFilter('completed', this)"
+    data-i18n="filter_completed"
+  >
+    Completados
+  </button>
+  <button
+    class="btn btn-sm"
+    data-filter="abandoned"
+    onclick="setFilter('abandoned', this)"
+    data-i18n="filter_abandoned"
+  >
+    Abandonados
+  </button>
 </div>
 
-<div id="games-list" style="display:flex; flex-direction:column; gap:8px;"></div>
-<p id="empty-msg" style="color:var(--text-muted); font-size:14px; display:none;" data-i18n="no_games_msg">No hay juegos en esta categoría.</p>
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:1.25rem;">
+    <span style="font-size:13px; color:var(--text-muted);" data-i18n="sort_by">Ordenar por:</span>
+    <select class="form-select" id="sort-select" onchange="setSort(this.value)" style="width:auto; padding:5px 10px; font-size:13px;">
+        <option value="name" data-i18n="sort_name">Nombre</option>
+        <option value="platform" data-i18n="sort_platform">Plataforma</option>
+        <option value="added" data-i18n="sort_added">Fecha añadido</option>
+        <option value="status" data-i18n="sort_status">Estado</option>
+    </select>
+</div>
+
+<div
+  id="games-list"
+  style="display: flex; flex-direction: column; gap: 8px"
+></div>
+<p
+  id="empty-msg"
+  style="color: var(--text-muted); font-size: 14px; display: none"
+  data-i18n="no_games_msg"
+>
+  No hay juegos en esta categoría.
+</p>
+
+<button
+  id="scroll-top-btn"
+  onclick="
+    document
+      .querySelector('.main-content')
+      .scrollTo({ top: 0, behavior: 'smooth' })
+  "
+  style="
+    display: none;
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 50;
+    transition: opacity 0.2s;
+  "
+>
+  ↑
+</button>
 
 <!-- MODAL -->
 <div class="modal-overlay" id="modal">
-    <div class="modal">
-        <div class="modal-header">
-            <span class="modal-title" id="modal-title" data-i18n="modal_add">Añadir juego</span>
-            <button class="modal-close" onclick="closeModal()">×</button>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label" data-i18n="hltb_label">URL de HowLongToBeat (opcional)</label>
-            <div style="display:flex; gap:8px;">
-                <input class="form-input" id="hltb-url" data-i18n-ph="hltb_ph" placeholder="https://howlongtobeat.com/game/...">
-                <button class="btn btn-sm" onclick="fetchHLTB()" id="hltb-btn" data-i18n="btn_load">Cargar</button>
-            </div>
-            <p id="hltb-status" style="font-size:12px; margin-top:4px; color:var(--text-muted);"></p>
-        </div>
-
-        <hr class="divider">
-
-        <div class="form-group">
-            <label class="form-label" data-i18n="field_name">Nombre *</label>
-            <input class="form-input" id="f-name">
-        </div>
-
-        <div style="display:flex; gap:12px; margin-bottom:1rem;">
-            <img id="f-cover-preview" src="" alt="" style="width:80px; height:107px; object-fit:cover; border-radius:8px; background:var(--bg-card); display:none;">
-            <div style="flex:1;">
-                <div class="form-group" style="margin-bottom:8px;">
-                    <label class="form-label" data-i18n="field_cover">URL portada</label>
-                    <input class="form-input" id="f-cover" oninput="previewCover()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" data-i18n="field_genres">Géneros (separados por coma)</label>
-                    <input class="form-input" id="f-genres">
-                </div>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label class="form-label" data-i18n="field_platform">Plataforma</label>
-                <input class="form-input" id="f-platform">
-            </div>
-            <div class="form-group">
-                <label class="form-label" data-i18n="field_status">Estado</label>
-                <select class="form-select" id="f-status" onchange="onStatusChange()">
-                    <option value="backlog" data-i18n="status_backlog">Backlog</option>
-                    <option value="playing" data-i18n="status_playing">Activo</option>
-                    <option value="paused" data-i18n="status_paused">Pausado</option>
-                    <option value="completed" data-i18n="status_completed">Completado</option>
-                    <option value="abandoned" data-i18n="status_abandoned">Abandonado</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="form-group" id="role-group">
-            <label class="form-label" data-i18n="field_role">Rol</label>
-            <select class="form-select" id="f-role">
-                <option value="" data-i18n="role_none">Sin rol</option>
-                <option value="principal" data-i18n="role_principal">Principal</option>
-                <option value="secundario" data-i18n="role_secundario">Secundario</option>
-                <option value="comodin" data-i18n="role_comodin">Comodín</option>
-            </select>
-        </div>
-
-        <div class="form-actions">
-            <button class="btn" onclick="closeModal()" data-i18n="btn_cancel">Cancelar</button>
-            <button class="btn btn-primary" onclick="saveGame()" data-i18n="btn_save">Guardar</button>
-        </div>
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title" data-i18n="modal_add"
+        >Añadir juego</span
+      >
+      <button class="modal-close" onclick="closeModal()">×</button>
     </div>
+
+    <div class="form-group">
+      <label class="form-label" data-i18n="hltb_label"
+        >URL de HowLongToBeat (opcional)</label
+      >
+      <div style="display: flex; gap: 8px">
+        <input
+          class="form-input"
+          id="hltb-url"
+          data-i18n-ph="hltb_ph"
+          placeholder="https://howlongtobeat.com/game/..."
+        />
+        <button
+          class="btn btn-sm"
+          onclick="fetchHLTB()"
+          id="hltb-btn"
+          data-i18n="btn_load"
+        >
+          Cargar
+        </button>
+      </div>
+      <p
+        id="hltb-status"
+        style="font-size: 12px; margin-top: 4px; color: var(--text-muted)"
+      ></p>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="form-group">
+      <label class="form-label" data-i18n="field_name">Nombre *</label>
+      <input class="form-input" id="f-name" />
+    </div>
+
+    <div style="display: flex; gap: 12px; margin-bottom: 1rem">
+      <img
+        id="f-cover-preview"
+        src=""
+        alt=""
+        style="
+          width: 80px;
+          height: 107px;
+          object-fit: cover;
+          border-radius: 8px;
+          background: var(--bg-card);
+          display: none;
+        "
+      />
+      <div style="flex: 1">
+        <div class="form-group" style="margin-bottom: 8px">
+          <label class="form-label" data-i18n="field_cover">URL portada</label>
+          <input class="form-input" id="f-cover" oninput="previewCover()" />
+        </div>
+        <div class="form-group" style="margin-bottom: 0">
+          <label class="form-label" data-i18n="field_genres"
+            >Géneros (separados por coma)</label
+          >
+          <input class="form-input" id="f-genres" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" data-i18n="field_platform">Plataforma</label>
+        <input class="form-input" id="f-platform" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="field_status">Estado</label>
+        <select class="form-select" id="f-status" onchange="onStatusChange()">
+          <option value="backlog" data-i18n="status_backlog">Backlog</option>
+          <option value="playing" data-i18n="status_playing">Activo</option>
+          <option value="paused" data-i18n="status_paused">Pausado</option>
+          <option value="completed" data-i18n="status_completed">
+            Completado
+          </option>
+          <option value="abandoned" data-i18n="status_abandoned">
+            Abandonado
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group" id="role-group">
+      <label class="form-label" data-i18n="field_role">Rol</label>
+      <select class="form-select" id="f-role">
+        <option value="" data-i18n="role_none">Sin rol</option>
+        <option value="principal" data-i18n="role_principal">Principal</option>
+        <option value="secundario" data-i18n="role_secundario">
+          Secundario
+        </option>
+        <option value="comodin" data-i18n="role_comodin">Comodín</option>
+      </select>
+    </div>
+
+    <div class="form-group" id="completed-date-group" style="display: none">
+      <label class="form-label" data-i18n="field_completed_date"
+        >Fecha de completado</label
+      >
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+        <select class="form-select" id="f-completed-month">
+          <option value="1">Enero</option>
+          <option value="2">Febrero</option>
+          <option value="3">Marzo</option>
+          <option value="4">Abril</option>
+          <option value="5">Mayo</option>
+          <option value="6">Junio</option>
+          <option value="7">Julio</option>
+          <option value="8">Agosto</option>
+          <option value="9">Septiembre</option>
+          <option value="10">Octubre</option>
+          <option value="11">Noviembre</option>
+          <option value="12">Diciembre</option>
+        </select>
+        <select class="form-select" id="f-completed-year"></select>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()" data-i18n="btn_cancel">
+        Cancelar
+      </button>
+      <button class="btn btn-primary" onclick="saveGame()" data-i18n="btn_save">
+        Guardar
+      </button>
+    </div>
+  </div>
 </div>
 
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-let allGames = [], currentFilter = 'all', editingId = null;
+  let allGames = [],
+    currentFilter = "all",
+    editingId = null,
+    currentView = "list";
 
-async function loadGames() {
+  // Poblar selector de años
+  const yearSelect = document.getElementById("f-completed-year");
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear; y >= 1980; y--) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y;
+    yearSelect.appendChild(opt);
+  }
+
+  async function loadGames() {
     allGames = await fetch('/api/games').then(r => r.json());
+    document.getElementById('sort-select').value = currentSort;
     renderGames();
-}
+  }
 
-function setFilter(f, el) {
+  function setView(v) {
+    currentView = v;
+    localStorage.setItem("ab_view", v);
+    document
+      .getElementById("view-list")
+      .classList.toggle("active-filter", v === "list");
+    document
+      .getElementById("view-grid")
+      .classList.toggle("active-filter", v === "grid");
+    renderGames();
+  }
+
+  function setFilter(f, el) {
     currentFilter = f;
-    document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active-filter'));
-    el.classList.add('active-filter');
+    document
+      .querySelectorAll("[data-filter]")
+      .forEach((b) => b.classList.remove("active-filter"));
+    el.classList.add("active-filter");
     renderGames();
-}
+  }
 
-function renderGames() {
-    const list = document.getElementById('games-list');
-    const empty = document.getElementById('empty-msg');
-    const filtered = currentFilter === 'all' ? allGames : allGames.filter(g => g.status === currentFilter);
-    if (!filtered.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
-    empty.style.display = 'none';
-    list.innerHTML = filtered.map(g => `
-        <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem; display:flex; align-items:center; gap:12px;">
-            ${g.cover_url ? `<img src="${g.cover_url}" style="width:44px;height:58px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'">` : '<div style="width:44px;height:58px;background:var(--bg-surface);border-radius:6px;flex-shrink:0;"></div>'}
-            <div style="flex:1; min-width:0;">
-                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
-                    <span style="font-weight:600; font-size:14px;">${g.name}</span>
-                    ${g.role ? `<span class="badge badge-${g.role}">${t('role_' + g.role)}</span>` : ''}
-                </div>
-                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    ${g.platform ? `<span class="platform">${g.platform}</span>` : ''}
-                    <span style="font-size:12px; color:var(--text-muted);">${t('status_' + g.status)}</span>
-                    ${g.genres && g.genres.length ? `<span style="font-size:12px; color:var(--text-subtle);">${g.genres.join(', ')}</span>` : ''}
-                </div>
+  function renderGames() {
+    const list = document.getElementById("games-list");
+    const empty = document.getElementById("empty-msg");
+    const filtered = sortGames(
+        currentFilter === 'all' ? allGames : allGames.filter(g => g.status === currentFilter)
+    );
+
+    if (!filtered.length) {
+      list.innerHTML = "";
+      empty.style.display = "block";
+      return;
+    }
+    
+    empty.style.display = "none";
+
+    if (currentView === "grid") {
+      list.style.display = "grid";
+      list.style.gridTemplateColumns = "repeat(auto-fill, minmax(160px, 1fr))";
+      list.style.gap = "16px";
+      list.style.flexDirection = "";
+      list.innerHTML = filtered
+        .map(
+          (g) => `
+        <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; display:flex; flex-direction:column;">
+            <div style="position:relative; aspect-ratio:3/4; background:var(--bg-surface);">
+                ${g.cover_url ? `<img src="${g.cover_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">` : ""}
+                ${g.role ? `<span class="badge badge-${g.role}" style="position:absolute;top:6px;left:6px;">${t("role_" + g.role)}</span>` : ""}
             </div>
-            <div style="display:flex; gap:6px; flex-shrink:0;">
-                <button class="btn btn-sm" onclick="openModal('${g.id}')">${t('btn_edit')}</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteGame('${g.id}', '${g.name.replace(/'/g,"\\'")}')">${t('btn_delete')}</button>
+            <div style="padding:10px; flex:1; display:flex; flex-direction:column; gap:4px;">
+                <p style="font-size:13px; font-weight:600; line-height:1.3;">${g.name}</p>
+                ${g.platform ? `<span class="platform" style="align-self:flex-start;">${g.platform}</span>` : ""}
+                <p style="font-size:11px; color:var(--text-muted);">${t("status_" + g.status)}</p>
+                ${g.genres && g.genres.length ? `<p style="font-size:11px; color:var(--text-subtle); line-height:1.3;">${g.genres.join(", ")}</p>` : ""}
+                ${g.status === "completed" && g.completed_date ? `<p style="font-size:11px; color:var(--text-subtle);">${formatCompletedDate(g.completed_date)}</p>` : ""}
+                <div style="display:flex; gap:4px; margin-top:auto; padding-top:6px;">
+                    <button class="btn btn-sm" style="flex:1; padding:4px; font-size:11px;" onclick="openModal('${g.id}')">${t("btn_edit")}</button>
+                    <button class="btn btn-sm btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteGame('${g.id}','${g.name.replace(/'/g, "\\'")}')">✕</button>
+                </div>
             </div>
         </div>
-    `).join('');
-}
-
-function onStatusChange() {
-    document.getElementById('role-group').style.display =
-        document.getElementById('f-status').value === 'playing' ? 'block' : 'none';
-}
-
-function previewCover() {
-    const url = document.getElementById('f-cover').value.trim();
-    const img = document.getElementById('f-cover-preview');
-    if (url) { img.src = url; img.style.display = 'block'; }
-    else { img.style.display = 'none'; }
-}
-
-async function fetchHLTB() {
-    const url = document.getElementById('hltb-url').value.trim();
-    if (!url) return;
-    const btn = document.getElementById('hltb-btn');
-    const status = document.getElementById('hltb-status');
-    btn.textContent = t('btn_loading'); btn.disabled = true; status.textContent = '';
-    try {
-        const r = await fetch('/api/hltb', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url}) });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error);
-        document.getElementById('f-name').value = data.name || '';
-        document.getElementById('f-cover').value = data.cover_url || '';
-        if (data.cover_url) previewCover();
-        if (data.genres && data.genres.length) document.getElementById('f-genres').value = data.genres.join(', ');
-        status.textContent = t('hltb_ok'); status.style.color = 'var(--success)';
-    } catch(e) {
-        status.textContent = t('hltb_err'); status.style.color = '#e74c3c';
-    }
-    btn.textContent = t('btn_load'); btn.disabled = false;
-}
-
-function openModal(id = null) {
-    editingId = id;
-    document.getElementById('modal-title').textContent = t(id ? 'modal_edit' : 'modal_add');
-    document.getElementById('hltb-url').value = '';
-    document.getElementById('hltb-status').textContent = '';
-    document.getElementById('f-cover-preview').style.display = 'none';
-    if (id) {
-        const g = allGames.find(g => g.id === id);
-        document.getElementById('f-name').value = g.name;
-        document.getElementById('f-cover').value = g.cover_url || '';
-        document.getElementById('f-genres').value = g.genres ? g.genres.join(', ') : '';
-        document.getElementById('f-platform').value = g.platform || '';
-        document.getElementById('f-status').value = g.status;
-        document.getElementById('f-role').value = g.role || '';
-        if (g.cover_url) previewCover();
+    `,
+        )
+        .join("");
     } else {
-        ['f-name','f-cover','f-genres','f-platform'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('f-status').value = 'backlog';
-        document.getElementById('f-role').value = '';
+      list.style.display = "flex";
+      list.style.flexDirection = "column";
+      list.style.gridTemplateColumns = "";
+      list.innerHTML = filtered
+        .map(
+          (g) => `
+            <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem; display:flex; align-items:center; gap:12px;">
+                ${g.cover_url ? `<img src="${g.cover_url}" style="width:44px;height:58px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'">` : '<div style="width:44px;height:58px;background:var(--bg-surface);border-radius:6px;flex-shrink:0;"></div>'}
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
+                        <span style="font-weight:600; font-size:14px;">${g.name}</span>
+                        ${g.role ? `<span class="badge badge-${g.role}">${t("role_" + g.role)}</span>` : ""}
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        ${g.platform ? `<span class="platform">${g.platform}</span>` : ""}
+                        <span style="font-size:12px; color:var(--text-muted);">${t("status_" + g.status)}</span>
+                        ${g.genres && g.genres.length ? `<span style="font-size:12px; color:var(--text-subtle);">${g.genres.join(", ")}</span>` : ""}
+                        ${g.status === "completed" && g.completed_date ? `<span style="font-size:12px; color:var(--text-subtle);">· ${formatCompletedDate(g.completed_date)}</span>` : ""}
+                    </div>
+                </div>
+                <div style="display:flex; gap:6px; flex-shrink:0;">
+                    <button class="btn btn-sm" onclick="openModal('${g.id}')">${t("btn_edit")}</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteGame('${g.id}','${g.name.replace(/'/g, "\\'")}')">✕</button>
+                </div>
+            </div>
+        `,
+        )
+        .join("");
+    }
+  }
+
+  function onStatusChange() {
+    const status = document.getElementById("f-status").value;
+    document.getElementById("role-group").style.display =
+      status === "playing" ? "block" : "none";
+    document.getElementById("completed-date-group").style.display =
+      status === "completed" ? "block" : "none";
+  }
+
+  function previewCover() {
+    const url = document.getElementById("f-cover").value.trim();
+    const img = document.getElementById("f-cover-preview");
+    if (url) {
+      img.src = url;
+      img.style.display = "block";
+    } else {
+      img.style.display = "none";
+    }
+  }
+
+  async function fetchHLTB() {
+    const url = document.getElementById("hltb-url").value.trim();
+    if (!url) return;
+    const btn = document.getElementById("hltb-btn");
+    const status = document.getElementById("hltb-status");
+    btn.textContent = t("btn_loading");
+    btn.disabled = true;
+    status.textContent = "";
+    try {
+      const r = await fetch("/api/hltb", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      document.getElementById("f-name").value = data.name || "";
+      document.getElementById("f-cover").value = data.cover_url || "";
+      if (data.cover_url) previewCover();
+      if (data.genres && data.genres.length)
+        document.getElementById("f-genres").value = data.genres.join(", ");
+      status.textContent = t("hltb_ok");
+      status.style.color = "var(--success)";
+    } catch (e) {
+      status.textContent = t("hltb_err");
+      status.style.color = "#e74c3c";
+    }
+    btn.textContent = t("btn_load");
+    btn.disabled = false;
+  }
+
+  function openModal(id = null) {
+    editingId = id;
+    document.getElementById("modal-title").textContent = t(
+      id ? "modal_edit" : "modal_add",
+    );
+    document.getElementById("hltb-url").value = "";
+    document.getElementById("hltb-status").textContent = "";
+    document.getElementById("f-cover-preview").style.display = "none";
+
+    const now = new Date();
+    document.getElementById("f-completed-month").value = now.getMonth() + 1;
+    document.getElementById("f-completed-year").value = now.getFullYear();
+
+    if (id) {
+      const g = allGames.find((g) => g.id === id);
+      document.getElementById("f-name").value = g.name;
+      document.getElementById("f-cover").value = g.cover_url || "";
+      document.getElementById("f-genres").value = g.genres
+        ? g.genres.join(", ")
+        : "";
+      document.getElementById("f-platform").value = g.platform || "";
+      document.getElementById("f-status").value = g.status;
+      document.getElementById("f-role").value = g.role || "";
+      if (g.cover_url) previewCover();
+      if (g.completed_date) {
+        const parts = g.completed_date.split("-");
+        document.getElementById("f-completed-month").value = parseInt(parts[1]);
+        document.getElementById("f-completed-year").value = parseInt(parts[0]);
+      }
+    } else {
+      ["f-name", "f-cover", "f-genres", "f-platform"].forEach(
+        (id) => (document.getElementById(id).value = ""),
+      );
+      document.getElementById("f-status").value = "backlog";
+      document.getElementById("f-role").value = "";
     }
     onStatusChange();
-    document.getElementById('modal').classList.add('open');
-}
+    document.getElementById("modal").classList.add("open");
+  }
 
-function closeModal() {
-    document.getElementById('modal').classList.remove('open');
+  function closeModal() {
+    document.getElementById("modal").classList.remove("open");
     editingId = null;
-}
+  }
 
-async function saveGame() {
-    const name = document.getElementById('f-name').value.trim();
-    if (!name) { showToast(t('name_required'), 'error'); return; }
-    const genres = document.getElementById('f-genres').value.split(',').map(g => g.trim()).filter(Boolean);
-    const status = document.getElementById('f-status').value;
-    const role = status === 'playing' ? (document.getElementById('f-role').value || null) : null;
-    const body = { name, cover_url: document.getElementById('f-cover').value.trim(), genres, platform: document.getElementById('f-platform').value.trim(), status, role };
-    const r = await fetch(editingId ? `/api/games/${editingId}` : '/api/games', {
-        method: editingId ? 'PUT' : 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(body)
+  function formatCompletedDate(dateStr) {
+    if (!dateStr) return "";
+    const [y, m] = dateStr.split("-");
+    return currentLang === "en" ? `${y}-${m}` : `${m}-${y}`;
+  }
+
+  let currentSort = localStorage.getItem('ab_sort') || 'name';
+
+  function setSort(s) {
+    currentSort = s;
+    localStorage.setItem('ab_sort', s);
+    renderGames();
+  }
+
+  function sortGames(games) {
+    return [...games].sort((a, b) => {
+        switch (currentSort) {
+            case 'name':     return a.name.localeCompare(b.name);
+            case 'platform': return (a.platform || '').localeCompare(b.platform || '');
+            case 'added':    return (b.added_date || '').localeCompare(a.added_date || '');
+            case 'status':   return a.status.localeCompare(b.status);
+            default:         return 0;
+        }
     });
-    if (r.ok) { showToast(t(editingId ? 'toast_updated' : 'toast_added'), 'success'); closeModal(); loadGames(); }
-    else { showToast(t('toast_err_save'), 'error'); }
-}
+  }
 
-async function deleteGame(id, name) {
-    if (!confirm(t('confirm_delete', {name}))) return;
-    const r = await fetch(`/api/games/${id}`, { method: 'DELETE' });
-    if (r.ok) { showToast(t('toast_deleted'), 'success'); loadGames(); }
-    else { showToast(t('toast_err_delete'), 'error'); }
-}
+  async function saveGame() {
+    const name = document.getElementById("f-name").value.trim();
+    if (!name) {
+      showToast(t("name_required"), "error");
+      return;
+    }
 
-document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
-loadGames();
+    const duplicate = allGames.find(
+      (g) => g.name.toLowerCase() === name.toLowerCase() && g.id !== editingId,
+    );
+    if (duplicate) {
+      showToast(t("toast_duplicate"), "error");
+      return;
+    }
+
+    const genres = document
+      .getElementById("f-genres")
+      .value.split(",")
+      .map((g) => g.trim())
+      .filter(Boolean);
+    const status = document.getElementById("f-status").value;
+    const role = (status === 'playing') ? (document.getElementById('f-role').value || null) : null;
+
+    if (role) {
+      const roleConflict = allGames.find(
+        (g) => g.role === role && g.status === "playing" && g.id !== editingId,
+      );
+      if (roleConflict) {
+        showToast(
+          t("toast_role_conflict", {
+            name: roleConflict.name,
+            role: t("role_" + role),
+          }),
+          "error",
+        );
+        return;
+      }
+    }
+
+    if (status === 'completed' && editingId) {
+        const game = allGames.find(g => g.id === editingId);
+        if (game && game.status !== 'completed') {
+            const confirm_msg = t('confirm_completed', {name: game.name});
+            if (!confirm(confirm_msg)) return;
+        }
+    }
+
+    let completed_date = null;
+    if (status === "completed") {
+      const m = String(
+        document.getElementById("f-completed-month").value,
+      ).padStart(2, "0");
+      const y = document.getElementById("f-completed-year").value;
+      completed_date = `${y}-${m}`;
+    }
+
+    const body = {
+      name,
+      cover_url: document.getElementById("f-cover").value.trim(),
+      genres,
+      platform: document.getElementById("f-platform").value.trim(),
+      status,
+      role,
+      completed_date,
+    };
+
+    const r = await fetch(
+      editingId ? `/api/games/${editingId}` : "/api/games",
+      {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    if (r.ok) {
+      showToast(t(editingId ? "toast_updated" : "toast_added"), "success");
+      closeModal();
+      loadGames();
+    } else {
+      showToast(t("toast_err_save"), "error");
+    }
+  }
+
+  async function deleteGame(id, name) {
+    if (!confirm(t("confirm_delete", { name }))) return;
+    const r = await fetch(`/api/games/${id}`, { method: "DELETE" });
+    if (r.ok) {
+      showToast(t("toast_deleted"), "success");
+      loadGames();
+    } else {
+      showToast(t("toast_err_delete"), "error");
+    }
+  }
+
+  document.getElementById("modal").addEventListener("click", function (e) {
+    if (e.target === this) closeModal();
+  });
+
+  const mainContent = document.querySelector(".main-content");
+  mainContent.addEventListener("scroll", () => {
+    document.getElementById("scroll-top-btn").style.display =
+      mainContent.scrollTop > 200 ? "block" : "none";
+  });
+
+  const savedView = localStorage.getItem("ab_view") || "list";
+  setView(savedView);
+  loadGames();
 </script>
-<style>.active-filter { background:var(--accent-light); color:var(--accent-text); border-color:var(--accent); }</style>
+
+<style>
+  .active-filter {
+    background: var(--accent-light);
+    color: var(--accent-text);
+    border-color: var(--accent);
+  }
+</style>
 {% endblock %}

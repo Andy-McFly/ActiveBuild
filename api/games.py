@@ -37,7 +37,8 @@ def add_game():
         'platform': body.get('platform', ''),
         'role': body.get('role', None),
         'status': body.get('status', 'backlog'),
-        'added_date': str(date.today())
+        'added_date': str(date.today()),
+        'completed_date': body.get('completed_date', None)
     }
     data['games'].append(game)
     write_data(data)
@@ -49,7 +50,7 @@ def update_game(game_id):
     game = next((g for g in data['games'] if g['id'] == game_id), None)
     if not game:
         return jsonify({'error': 'Juego no encontrado'}), 404
-    allowed = {'name', 'cover_url', 'genres', 'hltb_id', 'platform', 'role', 'status'}
+    allowed = {'name', 'cover_url', 'genres', 'hltb_id', 'platform', 'role', 'status', 'completed_date'}
     body = request.get_json()
     for key, value in body.items():
         if key in allowed:

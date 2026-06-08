@@ -62,9 +62,9 @@
 </div>
 
 <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:2rem;">
-    <button class="btn btn-primary" onclick="playGame('principal')" id="btn-principal">▶ Jugar</button>
-    <button class="btn" onclick="playGame('secundario')" id="btn-secundario">▶ Jugar</button>
-    <button class="btn" onclick="playGame('comodin')" id="btn-comodin">▶ Jugar</button>
+    <button class="btn-play" onclick="playGame('principal')" id="btn-principal">▶ Jugar</button>
+    <button class="btn-play" onclick="playGame('secundario')" id="btn-secundario">▶ Jugar</button>
+    <button class="btn-play" onclick="playGame('comodin')" id="btn-comodin">▶ Jugar</button>
 </div>
 
 <hr class="divider">
@@ -103,7 +103,8 @@ function getWeekStart(ws) {
 
 function daysSince(dateStr) {
     if (!dateStr) return null;
-    return Math.round((new Date(TODAY) - new Date(dateStr)) / 86400000);
+    const diff = Math.round((new Date(TODAY) - new Date(dateStr)) / 86400000);
+    return diff;
 }
 
 function daysPlayedThisWeek(gameId, weekStart) {
@@ -133,12 +134,16 @@ function renderCards() {
         else { coverEl.style.display = 'none'; }
 
         const sessionInfo = document.getElementById('session-info-' + role);
-        if (!game) { sessionInfo.textContent = ''; }
-        else if (playedToday) { sessionInfo.innerHTML = `<span class="played-today">${t('played_today')}</span>`; }
-        else if (last) {
+        if (!game) {
+            sessionInfo.textContent = '';
+        } else if (playedToday) {
+            sessionInfo.innerHTML = `<span class="played-today">${t('played_today')}</span>`;
+        } else if (last) {
             const d = daysSince(last);
             sessionInfo.textContent = d === 1 ? t('day_ago') : t('days_ago', {n: d});
-        } else { sessionInfo.textContent = t('no_sessions'); }
+        } else {
+            sessionInfo.textContent = t('no_sessions');
+        }
 
         document.getElementById('bar-' + role).style.width = barPct + '%';
         document.getElementById('bar-label-' + role).textContent =
@@ -148,11 +153,16 @@ function renderCards() {
         btn.disabled = !game;
         if (playedToday) {
             btn.textContent = t('played_today');
-            btn.classList.add('btn-primary');
+            btn.style.background = 'var(--bg-card)';
+            btn.style.color = 'var(--text-muted)';
+            btn.style.borderColor = 'var(--border)';
+            btn.style.opacity = '0.8';
         } else {
             btn.textContent = t('btn_play');
-            if (role === 'principal') btn.classList.add('btn-primary');
-            else btn.classList.remove('btn-primary');
+            btn.style.background = 'var(--btn-main-bg)';
+            btn.style.color = 'var(--btn-main-text)';
+            btn.style.borderColor = 'var(--btn-main-bg)';
+            btn.style.opacity = game ? '1' : '0.4';
         }
     });
 }

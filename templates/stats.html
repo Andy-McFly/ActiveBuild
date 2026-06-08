@@ -20,24 +20,56 @@
     </div>
 </div>
 
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:1.5rem;">
-    <div class="card">
+<div class="metric-grid" style="margin-bottom:1.5rem;">
+    <div class="metric-card">
+        <p class="metric-label" data-i18n="metric_backlog">Juegos en backlog</p>
+        <p class="metric-value" id="m-backlog">—</p>
+    </div>
+    <div class="metric-card">
+        <p class="metric-label" data-i18n="metric_completed_total">Juegos completados</p>
+        <p class="metric-value" id="m-completed">—</p>
+    </div>
+    <div class="metric-card">
+        <p class="metric-label" data-i18n="most_played_title">Más jugado</p>
+        <div style="margin-top:4px;">
+            <p style="font-size:10px; color:var(--text-muted);" data-i18n="this_week">Esta semana</p>
+            <p style="font-size:13px; font-weight:500;" id="most-week">—</p>
+            <p style="font-size:10px; color:var(--text-muted); margin-top:6px;" data-i18n="this_month">Este mes</p>
+            <p style="font-size:13px; font-weight:500;" id="most-month">—</p>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; margin-bottom:1.5rem;">
+
+    <div class="card" style="overflow:hidden;">
         <p style="font-size:14px; font-weight:600; margin-bottom:1rem;" data-i18n="chart_title">Días jugados por semana</p>
-        <div id="weekly-chart" style="display:flex; align-items:flex-end; gap:6px; height:120px;"></div>
-        <div id="weekly-labels" style="display:flex; gap:6px; margin-top:6px;"></div>
-    </div>
-    <div class="card">
-        <p style="font-size:14px; font-weight:600; margin-bottom:1rem;" data-i18n="most_played_title">Más jugado</p>
-        <div style="margin-bottom:1rem;">
-            <p style="font-size:11px; color:var(--text-muted); margin-bottom:4px;" data-i18n="this_week">Esta semana</p>
-            <p style="font-size:14px; font-weight:500;" id="most-week">—</p>
-        </div>
-        <hr class="divider" style="margin:0.75rem 0;">
-        <div>
-            <p style="font-size:11px; color:var(--text-muted); margin-bottom:4px;" data-i18n="this_month">Este mes</p>
-            <p style="font-size:14px; font-weight:500;" id="most-month">—</p>
+        <div style="position:relative; display:flex; align-items:center; gap:4px;">
+            <button class="chart-arrow" id="weekly-prev" onclick="scrollChart('weekly',-1)">‹</button>
+            <div id="weekly-scroll" style="overflow:hidden; flex:1;">
+                <div id="weekly-chart-wrap" style="display:flex; flex-direction:column;">
+                    <div id="weekly-chart" style="display:flex; align-items:flex-end; gap:6px; height:120px;"></div>
+                    <div id="weekly-labels" style="display:flex; gap:6px; margin-top:6px;"></div>
+                </div>
+            </div>
+            <button class="chart-arrow" id="weekly-next" onclick="scrollChart('weekly',1)">›</button>
         </div>
     </div>
+
+    <div class="card" style="overflow:hidden;">
+        <p style="font-size:14px; font-weight:600; margin-bottom:1rem;" data-i18n="chart_completed_year">Completados por año</p>
+        <div style="position:relative; display:flex; align-items:center; gap:4px;">
+            <button class="chart-arrow" id="yearly-prev" onclick="scrollChart('yearly',-1)">‹</button>
+            <div id="yearly-scroll" style="overflow:hidden; flex:1;">
+                <div id="yearly-chart-wrap" style="display:flex; flex-direction:column;">
+                    <div id="yearly-chart" style="display:flex; align-items:flex-end; gap:6px; height:120px;"></div>
+                    <div id="yearly-labels" style="display:flex; gap:6px; margin-top:6px;"></div>
+                </div>
+            </div>
+            <button class="chart-arrow" id="yearly-next" onclick="scrollChart('yearly',1)">›</button>
+        </div>
+    </div>
+
 </div>
 
 <div class="card">
@@ -50,21 +82,26 @@
 {% block scripts %}
 <script>
 async function loadStats() {
-    const [summary, weekly, mostPlayed, completed] = await Promise.all([
+    const [summary, weekly, mostPlayed, completed, games] = await Promise.all([
         fetch('/api/stats/summary').then(r => r.json()),
         fetch('/api/stats/weekly?weeks=8').then(r => r.json()),
         fetch('/api/stats/most-played').then(r => r.json()),
-        fetch('/api/stats/completed').then(r => r.json())
+        fetch('/api/stats/completed').then(r => r.json()),
+        fetch('/api/games').then(r => r.json())
     ]);
 
     document.getElementById('m-week').textContent = summary.sessions_this_week;
     document.getElementById('m-month').textContent = summary.sessions_this_month;
+    document.getElementById('m-backlog').textContent = games.filter(g => g.status === 'backlog').length;
+    document.getElementById('m-completed').textContent = completed.length;
+
     const roleEl = document.getElementById('m-role');
     roleEl.innerHTML = summary.top_role
-        ? `<span class="badge badge-${summary.top_role}">${t('role_' + summary.top_role)}</span>`
+        ? `<span class="badge badge-${summary.top_role}">${t('role_'+summary.top_role)}</span>`
         : '<span style="color:var(--text-muted);font-size:13px;">—</span>';
 
     renderWeeklyChart(weekly);
+    renderYearlyChart(completed);
 
     const fmtSessions = n => n === 1 ? t('session_1') : t('sessions_n', {n});
     document.getElementById('most-week').textContent = mostPlayed.this_week
@@ -75,17 +112,42 @@ async function loadStats() {
     renderCompleted(completed);
 }
 
+const CHART_COL_W = 36;
+const CHART_GAP = 6;
+const CHART_STEP = 3;
+
+function scrollChart(id, dir) {
+    const container = document.getElementById(id + '-scroll');
+    const step = (CHART_COL_W + CHART_GAP) * CHART_STEP;
+    container.scrollLeft += dir * step;
+    updateArrows(id);
+}
+
+function updateArrows(id) {
+    const container = document.getElementById(id + '-scroll');
+    const prev = document.getElementById(id + '-prev');
+    const next = document.getElementById(id + '-next');
+    prev.style.opacity = container.scrollLeft > 0 ? '1' : '0.2';
+    prev.style.pointerEvents = container.scrollLeft > 0 ? 'auto' : 'none';
+    const atEnd = container.scrollLeft >= container.scrollWidth - container.clientWidth - 2;
+    next.style.opacity = atEnd ? '0.2' : '1';
+    next.style.pointerEvents = atEnd ? 'none' : 'auto';
+}
+
 function renderWeeklyChart(data) {
     const chart = document.getElementById('weekly-chart');
     const labels = document.getElementById('weekly-labels');
+    const wrap = document.getElementById('weekly-chart-wrap');
     const max = Math.max(...data.map(w => w.days_played), 1);
     const locale = currentLang === 'en' ? 'en-GB' : 'es-ES';
+    const totalW = data.length * (CHART_COL_W + CHART_GAP);
+    wrap.style.width = totalW + 'px';
 
     chart.innerHTML = data.map((w, i) => {
         const isCurrent = i === data.length - 1;
         const heightPct = Math.round((w.days_played / max) * 100);
         return `
-            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%;">
+            <div style="flex:0 0 ${CHART_COL_W}px; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%;">
                 <span style="font-size:10px; color:var(--text-muted);">${w.days_played}</span>
                 <div style="flex:1; width:100%; display:flex; align-items:flex-end;">
                     <div style="width:100%; height:${heightPct}%; background:${isCurrent ? 'var(--accent)' : 'var(--bar-bg)'}; border-radius:4px 4px 0 0; min-height:${w.days_played ? 4 : 0}px; opacity:${isCurrent ? 1 : 0.6};"></div>
@@ -96,26 +158,90 @@ function renderWeeklyChart(data) {
     labels.innerHTML = data.map((w, i) => {
         const isCurrent = i === data.length - 1;
         const label = isCurrent ? t('this_week_label') : new Date(w.week + 'T00:00:00').toLocaleDateString(locale, {month:'short', day:'numeric'});
-        return `<div style="flex:1; text-align:center; font-size:10px; color:${isCurrent ? 'var(--accent-text)' : 'var(--text-muted)'}; white-space:nowrap; overflow:hidden; font-weight:${isCurrent ? 600 : 400};">${label}</div>`;
+        return `<div style="flex:0 0 ${CHART_COL_W}px; text-align:center; font-size:10px; color:${isCurrent ? 'var(--accent-text)' : 'var(--text-muted)'}; white-space:nowrap; overflow:hidden; font-weight:${isCurrent ? 600 : 400};">${label}</div>`;
     }).join('');
+
+    setTimeout(() => {
+        const container = document.getElementById('weekly-scroll');
+        container.scrollLeft = container.scrollWidth;
+        updateArrows('weekly');
+    }, 50);
+}
+
+function renderYearlyChart(completed) {
+    const chart = document.getElementById('yearly-chart');
+    const labels = document.getElementById('yearly-labels');
+    const wrap = document.getElementById('yearly-chart-wrap');
+
+    if (!completed.length) {
+        chart.innerHTML = '<p style="font-size:12px; color:var(--text-muted);">—</p>';
+        labels.innerHTML = '';
+        return;
+    }
+
+    const currentYear = new Date().getFullYear();
+    const years = completed.filter(g => g.completed_date).map(g => parseInt(g.completed_date.split('-')[0]));
+
+    if (!years.length) {
+        chart.innerHTML = '<p style="font-size:12px; color:var(--text-muted);">—</p>';
+        return;
+    }
+
+    const minYear = Math.min(...years);
+    const data = [];
+    for (let y = minYear; y <= currentYear; y++) {
+        data.push({ year: y, count: years.filter(yr => yr === y).length });
+    }
+
+    const max = Math.max(...data.map(d => d.count), 1);
+    const totalW = data.length * (CHART_COL_W + CHART_GAP);
+    wrap.style.width = totalW + 'px';
+
+    chart.innerHTML = data.map(d => {
+        const isCurrent = d.year === currentYear;
+        const heightPct = Math.round((d.count / max) * 100);
+        return `
+            <div style="flex:0 0 ${CHART_COL_W}px; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%;">
+                <span style="font-size:10px; color:var(--text-muted);">${d.count || ''}</span>
+                <div style="flex:1; width:100%; display:flex; align-items:flex-end;">
+                    <div style="width:100%; height:${d.count ? heightPct : 0}%; background:${isCurrent ? 'var(--accent)' : 'var(--bar-s)'}; border-radius:4px 4px 0 0; min-height:${d.count ? 4 : 0}px; opacity:${isCurrent ? 1 : 0.7};"></div>
+                </div>
+            </div>`;
+    }).join('');
+
+    labels.innerHTML = data.map(d => {
+        const isCurrent = d.year === currentYear;
+        return `<div style="flex:0 0 ${CHART_COL_W}px; text-align:center; font-size:10px; color:${isCurrent ? 'var(--accent-text)' : 'var(--text-muted)'}; font-weight:${isCurrent ? 600 : 400};">${d.year}</div>`;
+    }).join('');
+
+    setTimeout(() => {
+        const container = document.getElementById('yearly-scroll');
+        container.scrollLeft = container.scrollWidth;
+        updateArrows('yearly');
+    }, 50);
 }
 
 function renderCompleted(games) {
     const el = document.getElementById('completed-list');
-    if (!games.length) { el.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">${t('no_completed')}</p>`; return; }
+    if (!games.length) {
+        el.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">${t('no_completed')}</p>`;
+        return;
+    }
     const fmtSessions = n => n === 1 ? t('session_1') : t('sessions_n', {n});
-    el.innerHTML = games.map(g => `
+    el.innerHTML = games.map(g => {
+        const year = g.completed_date ? g.completed_date.split('-')[0] : null;
+        return `
         <div style="display:flex; align-items:center; gap:12px; padding:0.75rem 0; border-bottom:1px solid var(--border);">
             ${g.cover_url ? `<img src="${g.cover_url}" style="width:36px;height:48px;object-fit:cover;border-radius:5px;flex-shrink:0;" onerror="this.style.display='none'">` : ''}
             <div style="flex:1;">
                 <p style="font-size:14px; font-weight:500;">${g.name}</p>
-                <p style="font-size:12px; color:var(--text-muted);">${g.platform || ''}</p>
+                <p style="font-size:12px; color:var(--text-muted);">${g.platform || ''}${year ? ' · ' + year : ''}</p>
             </div>
             <div style="text-align:right;">
                 <p style="font-size:13px; font-weight:500; color:var(--accent-text);">${fmtSessions(g.total_sessions)}</p>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 loadStats();
