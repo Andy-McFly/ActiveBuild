@@ -28,7 +28,7 @@ ActiveBuild es una aplicación de escritorio diseñada para **reducir la paráli
 
 ---
 
-## ✨ Funcionalidades
+## Funcionalidades
 
 **Pantalla de inicio**
 - Tres tarjetas con los juegos activos (Principal, Secundario, Comodín), cada una con portada, plataforma, géneros, sesiones esta semana y última sesión
